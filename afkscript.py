@@ -1,83 +1,52 @@
 from pynput.mouse import Controller as MouseController
 from pynput.keyboard import Controller as KeyboardController
 import time
-import subprocess
-import os
-import psutil
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
 
-countdown = int(input("Seconds before considering AFK: ")) or 120
+# Load the image and convert to numpy format
+ImageAddress = "./icon/IAmAFK-png.png"
+ImageItself = Image.open(ImageAddress)
+ImageNumpyFormat = np.asarray(ImageItself)
+
+# Get the countdown time from the user, default to 120 seconds if not provided
+try:
+    countdown = int(input("Seconds before considering AFK: ")) or 120
+except ValueError:
+    countdown = 120 
+
 t_countdown = 0
 
 mouse = MouseController()
 keyboard = KeyboardController()
-is_task = False
-afk_file = "./afk.txt"
 
+# Get initial mouse position
 x, y = mouse.position
 
-def is_notepad_running():
-    try:
-        for proc in psutil.process_iter(['pid', 'name']):
-            if 'notepad.exe' in proc.info['name'].lower():
-                return True
-        return False
-    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-        return False
+# Set up matplotlib for interactive mode
+plt.ion()
 
 while True:
     c_x, c_y = mouse.position
 
     if c_x != x or c_y != y:
         # Mouse is moving
-        if os.path.exists(afk_file):
-            is_task = False
-            
-            # Kill any running instances of Notepad
-            try:
-                subprocess.call("TASKKILL /F /IM notepad.exe", shell=True)
-                is_task = True
-            except Exception as e:
-                print(f"Error killing Notepad process: {e}")
-            
-            # Wait for Notepad to terminate
-            if is_task:
-                while is_notepad_running():
-                    time.sleep(1)
-            
-            # Remove afk.txt if it exists and Notepad was terminated
-            if os.path.exists(afk_file):
-                try:
-                    os.remove(afk_file)
-                    print("afk.txt removed successfully.")
-                except Exception as e:
-                    print(f"Error removing afk.txt: {e}")
-            else:
-                print("afk.txt does not exist.")
-        else:
-            print("afk.txt does not exist.")
-
         print("Mouse is moving")
         x = c_x
         y = c_y
         t_countdown = 0  # Reset countdown
         
+        # Close the AFK image if it's open
+        plt.close()
+        
     else:
         # Mouse is not moving
         if t_countdown == countdown:
-            with open(afk_file, "w") as f:
-                f.write(f"AFK for {t_countdown - countdown} seconds\n")  # Write to afk.txt
-            subprocess.Popen(["notepad", afk_file])
-
-            t_countdown += 1
-        elif t_countdown >= countdown:
-            if os.path.exists(afk_file):
-                with open(afk_file, "a") as f:
-                    f.write(f"AFK for {t_countdown - countdown} seconds\n")  # Append to afk.txt
-            else:
-                with open(afk_file, "w") as f:
-                    f.write(f"AFK for {t_countdown - countdown} seconds\n")  # Write to afk.txt
-            subprocess.Popen(["notepad", afk_file])
-
+            # Display the AFK image
+            plt.imshow(ImageNumpyFormat)
+            plt.draw()
+            plt.pause(0.01)  # Small pause to ensure the image updates
             t_countdown += 1
         else:
             t_countdown += 1
