@@ -1,3 +1,4 @@
+@echo off
 REM Create a virtual environment in the current directory
 python -m venv env
 
@@ -12,7 +13,7 @@ REM Install the required packages from requirements.txt
 pip install -r requirements.txt
 
 REM Create a standalone executable with PyInstaller
-pyinstaller --onefile app.py
+pyinstaller --onefile afkscript.py
 
 REM Deactivate the virtual environment
 deactivate
